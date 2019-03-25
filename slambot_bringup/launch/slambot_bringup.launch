@@ -1,0 +1,8 @@
+<launch>
+  <node pkg="slambot_base" type="slambot_base" name="slambot_base" output="screen">
+    <param name="_port" value="/dev/ttyUSB0" />
+  </node>
+  <node pkg="xv_11_laser_driver" type="neato_laser_publisher" name="neato_laser_publisher" output="screen">
+    <param name="_port" value="/dev/ttyUSB1" />
+  </node>
+</launch>

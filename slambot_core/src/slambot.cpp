@@ -61,6 +61,16 @@ void Slambot::sendLidarSpeed(uint16_t speed)
 
 	sendMsg(2, data, 2);
 }
+void Slambot::sendPids(float kp,float ki, float kd)
+{
+	PidMsg pids;
+	pids.kp = kp;
+	pids.ki = ki;
+	pids.kd = kd;
+	uint8_t data[sizeof(PidMsg)];
+	memcpy(data,&pids,sizeof(PidMsg));
+	sendMsg(4, data, sizeof(PidMsg));
+}
 void Slambot::sendMsg(uint8_t type, uint8_t *data, uint8_t len)
 {
 	uint8_t txBuffer[32];

@@ -45,10 +45,17 @@
 	 uint8_t crc;
  } SerialMsg;
 
-  typedef struct __attribute__((__packed__)) speedMsg
+ typedef struct __attribute__((__packed__)) speedMsg
  {
 	 int16_t left;
 	 int16_t right;
  } SpeedMsg;
+ 
+ typedef struct __attribute__((__packed__)) pidMsg
+ {
+	 float kp;
+	 float ki;
+	 float kd;
+ } PidMsg;
 
 #endif

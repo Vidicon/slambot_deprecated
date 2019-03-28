@@ -5,10 +5,21 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  message_generation
   tf
 )
 
 find_package(Boost REQUIRED COMPONENTS system)
+
+add_message_files(
+  FILES
+  Pid.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 catkin_package(
 	INCLUDE_DIRS include

@@ -42,17 +42,22 @@
 #include "geometry_msgs/Twist.h"
 #include <std_msgs/UInt16.h>
 #include <nav_msgs/Odometry.h>
+#include "slambot_core/Pid.h"
 //#include <sensor_msgs/LaserScan.h>
  
 
  Slambot* g_slambot;
 
-const float countTomps = 62.0;
+const float countTomps = 149.714;
+const float inerWheelDis = 0.145;
+
  float lidar_kp = 1.0;
  float lidar_ki = 0.5;
  int16_t integral = 0;
 
-
+double g_x = 0.0;
+double g_y = 0.0;
+double g_th = 0.0;
 
  void sendOdom(double right_speed, double left_speed);
 
@@ -93,6 +98,16 @@ void rpmCallback(const std_msgs::UInt16::ConstPtr &rpmsMsg)
   ROS_INFO("Send lidar: %i, %i",rpm,lidarSpeed);
   g_slambot->sendLidarSpeed(lidarSpeed);
 }
+void pidCallback(const slambot_core::Pid::ConstPtr &pidMsg)
+{
+ // ROS_INFO("cmdCallback");
+  slambot_core::Pid pids = (slambot_core::Pid)*pidMsg;
+  ROS_INFO("change pids");
+  
+   g_slambot->sendPids(pids.kp,pids.ki,pids.kd);
+
+}
+
 
 int main(int argc, char **argv)
 {
@@ -124,6 +139,7 @@ int main(int argc, char **argv)
 
     ros::Subscriber cmdSubscriber = n.subscribe("/cmd_vel", 1000, cmdCallback);
     ros::Subscriber rpmSubscriber = n.subscribe("/rpms", 1000, rpmCallback);
+    ros::Subscriber pidSubscriber = n.subscribe("/wheel_pid", 1000, pidCallback);
     g_odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);
     
 
@@ -152,25 +168,22 @@ int main(int argc, char **argv)
 
             float right_speed = speedMsg.right / countTomps;
             float left_speed = speedMsg.left / countTomps;
-            double x = 0.0;
-            double y = 0.0;
-            double th = 0.0;
 
-            double vx = (right_speed + left_speed) /2;
+            double vx = (right_speed + left_speed) / 2;
             double vy = 0.0;
-            double vth = ((left_speed - right_speed)/0.138);
+            double vth = ((left_speed - right_speed) / 0.6988);
 
             double dt = (g_current_time - g_last_time).toSec();
-            double delta_x = (vx * cos(th) - vy * sin(th)) * dt;
-            double delta_y = (vx * sin(th) + vy * cos(th)) * dt;
+            double delta_x = (vx * cos(g_th) - vy * sin(g_th)) * dt;
+            double delta_y = (vx * sin(g_th) + vy * cos(g_th)) * dt;
             double delta_th = vth * dt;
 
-            x += delta_x;
-            y += delta_y;
-            th += delta_th;
-
+            g_x += (delta_x*0.3);
+            g_y += (delta_y*0.3);
+            g_th += delta_th;
+	          ROS_INFO("x: %f y: %f th: %f",g_x,g_y,g_th);
             //since all odometry is 6DOF we'll need a quaternion created from yaw
-            geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(th);
+            geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(g_th);
 
             //first, we'll publish the transform over tf
             geometry_msgs::TransformStamped odom_trans;
@@ -178,8 +191,8 @@ int main(int argc, char **argv)
             odom_trans.header.frame_id = "odom";
             odom_trans.child_frame_id = "base_link";
 
-            odom_trans.transform.translation.x = x;
-            odom_trans.transform.translation.y = y;
+            odom_trans.transform.translation.x = g_x;
+            odom_trans.transform.translation.y = g_y;
             odom_trans.transform.translation.z = 0.0;
             odom_trans.transform.rotation = odom_quat;
 
@@ -192,8 +205,8 @@ int main(int argc, char **argv)
             odom.header.frame_id = "odom";
 
             //set the position
-            odom.pose.pose.position.x = x;
-            odom.pose.pose.position.y = y;
+            odom.pose.pose.position.x = g_x;
+            odom.pose.pose.position.y = g_y;
             odom.pose.pose.position.z = 0.0;
             odom.pose.pose.orientation = odom_quat;
 

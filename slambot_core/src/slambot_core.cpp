@@ -70,7 +70,7 @@ void cmdCallback(const geometry_msgs::Twist::ConstPtr &velMsg)
 
   int16_t speedLeft = (linear + angular)*countTomps;
   int16_t speedRight = (linear - angular)*countTomps;
-  ROS_INFO("Send speed: %i, %i",speedLeft,speedRight);
+//  ROS_INFO("Send speed: %i, %i",speedLeft,speedRight);
   g_slambot->sendVelocity(speedLeft,speedRight);
 }
 
@@ -95,7 +95,7 @@ void rpmCallback(const std_msgs::UInt16::ConstPtr &rpmsMsg)
   {
     lidarSpeed = 0;
   }
-  ROS_INFO("Send lidar: %i, %i",rpm,lidarSpeed);
+  //ROS_INFO("Send lidar: %i, %i",rpm,lidarSpeed);
   g_slambot->sendLidarSpeed(lidarSpeed);
 }
 void pidCallback(const slambot_core::Pid::ConstPtr &pidMsg)
@@ -136,6 +136,8 @@ int main(int argc, char **argv)
   try {
     
     g_slambot = new Slambot(port, baud_rate, io);
+
+    g_slambot->sendPids(6.0,0.4,0.0);
 
     ros::Subscriber cmdSubscriber = n.subscribe("/cmd_vel", 1000, cmdCallback);
     ros::Subscriber rpmSubscriber = n.subscribe("/rpms", 1000, rpmCallback);
@@ -181,7 +183,7 @@ int main(int argc, char **argv)
             g_x += (delta_x*0.3);
             g_y += (delta_y*0.3);
             g_th += delta_th;
-	          ROS_INFO("x: %f y: %f th: %f",g_x,g_y,g_th);
+//	          ROS_INFO("x: %f y: %f th: %f",g_x,g_y,g_th);
             //since all odometry is 6DOF we'll need a quaternion created from yaw
             geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(g_th);
 
@@ -189,7 +191,7 @@ int main(int argc, char **argv)
             geometry_msgs::TransformStamped odom_trans;
             odom_trans.header.stamp = g_current_time;
             odom_trans.header.frame_id = "odom";
-            odom_trans.child_frame_id = "base_link";
+            odom_trans.child_frame_id = "base_footprint";
 
             odom_trans.transform.translation.x = g_x;
             odom_trans.transform.translation.y = g_y;

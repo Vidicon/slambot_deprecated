@@ -41,12 +41,18 @@
 
 #include "geometry_msgs/Twist.h"
 #include <std_msgs/UInt16.h>
+#include <std_msgs/Float32.h>
 #include <nav_msgs/Odometry.h>
 #include "slambot_core/Pid.h"
 //#include <sensor_msgs/LaserScan.h>
  
 
  Slambot* g_slambot;
+
+#define PPR 823.1
+#define WHEELDIA 0.070 //70mm
+
+const float  MetersPerRotation = M_PI * WHEELDIA;
 
 const float countTomps = 149.714;
 const float inerWheelDis = 0.145;
@@ -67,6 +73,22 @@ void cmdCallback(const geometry_msgs::Twist::ConstPtr &velMsg)
   geometry_msgs::Twist twist = (geometry_msgs::Twist)*velMsg;
   float linear = twist.linear.x;
   float angular = twist.angular.z;
+  if(linear > 0.8){
+    linear = 0.8;
+  }
+  if(linear < -0.2)
+  {
+    linear = -0.2;
+  }
+  if(angular < -0.2)
+  {
+    angular = -0.2;
+  }
+  if(angular > 0.2)
+  {
+    angular = 0.2;
+  }
+
 
   int16_t speedLeft = (linear + angular)*countTomps;
   int16_t speedRight = (linear - angular)*countTomps;
@@ -137,13 +159,17 @@ int main(int argc, char **argv)
     
     g_slambot = new Slambot(port, baud_rate, io);
 
-    g_slambot->sendPids(6.0,0.4,0.0);
+    g_slambot->sendPids(130.0,0.16,0.0);
+    g_slambot->sendLidarSpeed(300);
+
 
     ros::Subscriber cmdSubscriber = n.subscribe("/cmd_vel", 1000, cmdCallback);
     ros::Subscriber rpmSubscriber = n.subscribe("/rpms", 1000, rpmCallback);
     ros::Subscriber pidSubscriber = n.subscribe("/wheel_pid", 1000, pidCallback);
     g_odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);
-    
+    ros::Publisher leftwheel_pub  = n.advertise<std_msgs::Float32>("speedLeft", 50);
+    ros::Publisher rightwheel_pub = n.advertise<std_msgs::Float32>("speedright", 50);
+
 
 
     
@@ -170,18 +196,24 @@ int main(int argc, char **argv)
 
             float right_speed = speedMsg.right / countTomps;
             float left_speed = speedMsg.left / countTomps;
+	    std_msgs::Float32 speedMsg2;
+	    speedMsg2.data = left_speed;
+	    leftwheel_pub.publish(speedMsg2);
+	    speedMsg2.data = right_speed;
+
+	    rightwheel_pub.publish(speedMsg2);
 
             double vx = (right_speed + left_speed) / 2;
             double vy = 0.0;
-            double vth = ((left_speed - right_speed) / 0.6988);
+            double vth = ((left_speed - right_speed) / inerWheelDis);
 
             double dt = (g_current_time - g_last_time).toSec();
             double delta_x = (vx * cos(g_th) - vy * sin(g_th)) * dt;
             double delta_y = (vx * sin(g_th) + vy * cos(g_th)) * dt;
             double delta_th = vth * dt;
 
-            g_x += (delta_x*0.3);
-            g_y += (delta_y*0.3);
+            g_x += (delta_x);
+            g_y += (delta_y);
             g_th += delta_th;
 //	          ROS_INFO("x: %f y: %f th: %f",g_x,g_y,g_th);
             //since all odometry is 6DOF we'll need a quaternion created from yaw

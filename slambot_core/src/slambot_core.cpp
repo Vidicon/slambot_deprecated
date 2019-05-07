@@ -138,6 +138,7 @@ int main(int argc, char **argv)
     g_slambot = new Slambot(port, baud_rate, io);
 
     g_slambot->sendPids(6.0,0.4,0.0);
+    g_slambot->sendLidarSpeed(200);
 
     ros::Subscriber cmdSubscriber = n.subscribe("/cmd_vel", 1000, cmdCallback);
     ros::Subscriber rpmSubscriber = n.subscribe("/rpms", 1000, rpmCallback);
@@ -173,7 +174,7 @@ int main(int argc, char **argv)
 
             double vx = (right_speed + left_speed) / 2;
             double vy = 0.0;
-            double vth = ((left_speed - right_speed) / 0.6988);
+            double vth = ((left_speed - right_speed) / 0.6988); //inerWheelDis
 
             double dt = (g_current_time - g_last_time).toSec();
             double delta_x = (vx * cos(g_th) - vy * sin(g_th)) * dt;

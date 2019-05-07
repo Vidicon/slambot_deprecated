@@ -1,7 +1,12 @@
 <launch>
   <!-- Arguments -->
+<<<<<<< HEAD
   <arg name="map_file" default="$(find slambot_navigation)/maps/topfloor2.yaml"/>
   <arg name="open_rviz" default="true"/>
+=======
+  <arg name="map_file" default="$(find slambot_navigation)/maps/hotel.yaml"/>
+  <arg name="open_rviz" default="false"/>
+>>>>>>> 1006ca71938d5f61c144d11a1dc75f4daf1c8737
   <arg name="move_forward_only" default="false"/>
 
   <!-- Map server -->
